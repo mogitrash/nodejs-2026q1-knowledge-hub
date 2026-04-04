@@ -1,11 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
+import { ArticleService } from 'src/article/article.service';
 
 @Injectable()
 export class CategoryService {
   private _categories: Category[] = [];
+
+  constructor(
+    @Inject(forwardRef(() => ArticleService))
+    private readonly _articleService: ArticleService,
+  ) {}
 
   create(createCategoryDto: CreateCategoryDto) {
     const newCategory: Category = {
@@ -62,6 +73,8 @@ export class CategoryService {
     this._categories = this._categories.filter(
       (category) => category.id !== id,
     );
+
+    this._articleService.removeCategory(id);
 
     return;
   }

@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   HttpStatus,
@@ -34,7 +34,7 @@ export class CategoryController {
     return this.categoryService.findOne(params.id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param() params: IdParamsDto,
     @Body() updateCategoryDto: UpdateCategoryDto,
