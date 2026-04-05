@@ -16,10 +16,14 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { IdParamsDto } from 'src/shared/dto/id.dto';
 import { QueryParamsDto } from './dto/query-params.dto';
 import { Response } from 'express';
+import { DeleteArticleUseCase } from './use-cases/delete-article.use-case';
 
 @Controller('article')
 export class ArticleController {
-  constructor(private readonly articleService: ArticleService) {}
+  constructor(
+    private readonly articleService: ArticleService,
+    private readonly deleteArticleUseCase: DeleteArticleUseCase,
+  ) {}
 
   @Post()
   create(@Body() createArticleDto: CreateArticleDto) {
@@ -46,7 +50,7 @@ export class ArticleController {
 
   @Delete(':id')
   remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.articleService.remove(params.id);
+    this.deleteArticleUseCase.execute(params.id);
 
     res.status(HttpStatus.NO_CONTENT).send();
   }

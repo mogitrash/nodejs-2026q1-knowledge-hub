@@ -1,6 +1,4 @@
 import {
-  forwardRef,
-  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -13,10 +11,7 @@ import { ArticleService } from 'src/article/article.service';
 export class CommentService {
   private _comments: Comment[] = [];
 
-  constructor(
-    @Inject(forwardRef(() => ArticleService))
-    private readonly _articleService: ArticleService,
-  ) {}
+  constructor(private readonly _articleService: ArticleService) {}
 
   create(createCommentDto: CreateCommentDto) {
     try {
