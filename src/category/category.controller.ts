@@ -14,10 +14,14 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { IdParamsDto } from 'src/shared/dto';
 import { Response } from 'express';
+import { RemoveCategoryUseCase } from './use-cases/remove-category.use-case';
 
 @Controller('category')
 export class CategoryController {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(
+    private readonly categoryService: CategoryService,
+    private readonly removeCategoryUseCase: RemoveCategoryUseCase,
+  ) {}
 
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
@@ -44,7 +48,7 @@ export class CategoryController {
 
   @Delete(':id')
   remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.categoryService.remove(params.id);
+    this.removeCategoryUseCase.execute(params.id);
 
     res.status(HttpStatus.NO_CONTENT).send();
   }

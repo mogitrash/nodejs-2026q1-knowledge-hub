@@ -1,7 +1,5 @@
 import {
   ForbiddenException,
-  forwardRef,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,19 +7,10 @@ import {
 import { User, UserRole } from './entities';
 import { CreateUserDto, UpdatePasswordDto } from './dto';
 import { toUserResponseDto, UserResponseDto } from './dto/user-response.dto';
-import { ArticleService } from 'src/article/article.service';
-import { CommentService } from 'src/comment/comment.service';
 
 @Injectable()
 export class UserService {
   private _users: User[] = [];
-
-  constructor(
-    @Inject(forwardRef(() => ArticleService))
-    private readonly _articleService: ArticleService,
-    @Inject(forwardRef(() => CommentService))
-    private readonly _commentService: CommentService,
-  ) {}
 
   create(createUserDto: CreateUserDto): UserResponseDto {
     const newUser: User = {
@@ -77,9 +66,6 @@ export class UserService {
     }
 
     this._users = this._users.filter((user) => user.id !== id);
-
-    this._articleService.removeAuthor(id);
-    this._commentService.removeAllByAuthorId(id);
 
     return;
   }
