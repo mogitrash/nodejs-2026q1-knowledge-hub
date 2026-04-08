@@ -29,6 +29,13 @@ services:
       interval: 10s
       timeout: 5s
     restart: unless-stopped
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    profiles: [development]
 
 volumes:
   postgres_data:
