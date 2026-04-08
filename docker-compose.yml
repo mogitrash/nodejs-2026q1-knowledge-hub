@@ -1,0 +1,34 @@
+services:
+  knowledge-hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 4000:4000
+    restart: on-failure
+    depends_on:
+      - db
+    healthcheck:
+      test:
+        ['CMD', 'curl', '-f', 'http://localhost:4000/doc', '||', 'exit', '1']
+      interval: 10s
+      timeout: 5s
+    env_file: .env
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', '${POSTGRES_USER}']
+      interval: 10s
+      timeout: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
