@@ -4,6 +4,7 @@
 
 - Git - [Download & Install Git](https://git-scm.com/downloads).
 - Node.js - [Download & Install Node.js](https://nodejs.org/en/download/) and the npm package manager.
+- Docker Image - [Docker Hub](https://hub.docker.com/repository/docker/mogitrash/nodejs-2026q1-knowledge-hub-knowledge-hub/general)
 
 ## Downloading
 
