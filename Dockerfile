@@ -16,7 +16,9 @@ ENV NODE_ENV=production
 
 COPY --from=build /app/dist ./dist
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm ci --omit=dev --omit=optional --no-audit --fund=false --legacy-peer-deps \
+  && npm cache clean --force \
+  && rm -rf /root/.npm /tmp/*
 
 RUN adduser -D app
 USER app
