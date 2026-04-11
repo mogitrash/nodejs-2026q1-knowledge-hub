@@ -13,35 +13,46 @@ import { UserService } from './user.service';
 import { CreateUserDto, UpdatePasswordDto } from './dto';
 import { IdParamsDto } from '../shared/dto';
 import { Response } from 'express';
+import { toUserResponseDto } from './dto/user-response.dto';
+import { DeleteUserUseCase } from './use-cases/delete-user.use-case';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly deleteUserUseCase: DeleteUserUseCase,
+  ) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const user = await this.userService.create(createUserDto);
+    return toUserResponseDto(user);
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  async findAll() {
+    const users = await this.userService.findAll();
+    return users.map(toUserResponseDto);
   }
 
   @Get(':id')
-  findOne(@Param() params: IdParamsDto) {
-    return this.userService.findOne(params.id);
+  async findOne(@Param() params: IdParamsDto) {
+    const user = await this.userService.findOne(params.id);
+    return toUserResponseDto(user);
   }
 
   @Put(':id')
-  update(@Param() params: IdParamsDto, @Body() updateDto: UpdatePasswordDto) {
-    return this.userService.update(params.id, updateDto);
+  async update(
+    @Param() params: IdParamsDto,
+    @Body() updateDto: UpdatePasswordDto,
+  ) {
+    const user = await this.userService.update(params.id, updateDto);
+    return toUserResponseDto(user);
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.userService.remove(params.id);
-
+  async remove(@Param() params: IdParamsDto, @Res() res: Response) {
+    await this.deleteUserUseCase.execute(params.id);
     res.status(HttpStatus.NO_CONTENT).send();
   }
 }

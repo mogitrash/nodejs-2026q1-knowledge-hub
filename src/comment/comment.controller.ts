@@ -31,8 +31,8 @@ export class CommentController {
   }
 
   @Get(':id')
-  findOne(@Param() params: IdParamsDto) {
-    const comment = this.commentService.findOne(params.id);
+  async findOne(@Param() params: IdParamsDto) {
+    const comment = await this.commentService.findOne(params.id);
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
@@ -42,8 +42,8 @@ export class CommentController {
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.commentService.remove(params.id);
+  async remove(@Param() params: IdParamsDto, @Res() res: Response) {
+    await this.commentService.remove(params.id);
 
     res.status(HttpStatus.NO_CONTENT).send();
   }

@@ -6,66 +6,84 @@ import {
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Comment } from './entities/comment.entity';
 import { ArticleService } from 'src/article/article.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import type { Comment as PrismaComment } from 'generated/prisma/client';
 
 @Injectable()
 export class CommentService {
-  private _comments: Comment[] = [];
+  constructor(
+    private readonly _articleService: ArticleService,
+    private readonly _prismaService: PrismaService,
+  ) {}
 
-  constructor(private readonly _articleService: ArticleService) {}
-
-  create(createCommentDto: CreateCommentDto) {
+  async create(createCommentDto: CreateCommentDto): Promise<Comment> {
     try {
-      this._articleService.findOne(createCommentDto.articleId);
+      await this._articleService.findOne(createCommentDto.articleId);
     } catch (error) {
       throw new UnprocessableEntityException('Article not found');
     }
 
-    const newComment: Comment = {
-      id: crypto.randomUUID(),
-      content: createCommentDto.content,
-      articleId: createCommentDto.articleId,
-      authorId: createCommentDto.authorId ?? null,
-      createdAt: Date.now(),
-    };
+    const comment = await this._prismaService.comment.create({
+      data: {
+        content: createCommentDto.content,
+        articleId: createCommentDto.articleId,
+        authorId: createCommentDto.authorId ?? null,
+        createdAt: BigInt(Date.now()),
+      },
+    });
 
-    this._comments.push(newComment);
-
-    return newComment;
+    return this._toCommentEntity(comment);
   }
 
-  findAll(articleId: string) {
-    return this._comments.filter((comment) => comment.articleId === articleId);
+  async findAll(articleId: string): Promise<Comment[]> {
+    const comments = await this._prismaService.comment.findMany({
+      where: { articleId },
+    });
+
+    return comments.map((comment) => this._toCommentEntity(comment));
   }
 
-  findOne(id: string) {
-    return this._comments.find((comment) => comment.id === id);
+  async findOne(id: string): Promise<Comment | null> {
+    const comment = await this._prismaService.comment.findUnique({
+      where: { id },
+    });
+
+    return comment ? this._toCommentEntity(comment) : null;
   }
 
-  remove(id: string) {
-    const comment = this._comments.find((comment) => comment.id === id);
+  async remove(id: string): Promise<void> {
+    const comment = await this._prismaService.comment.findUnique({
+      where: { id },
+    });
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
 
-    this._comments = this._comments.filter((comment) => comment.id !== id);
-
-    return;
+    await this._prismaService.comment.delete({
+      where: { id },
+    });
   }
 
-  removeAllByArticleId(articleId: string) {
-    this._comments = this._comments.filter(
-      (comment) => comment.articleId !== articleId,
-    );
-
-    return;
+  async removeAllByArticleId(articleId: string): Promise<void> {
+    await this._prismaService.comment.deleteMany({
+      where: { articleId },
+    });
   }
 
-  removeAllByAuthorId(authorId: string) {
-    this._comments = this._comments.filter(
-      (comment) => comment.authorId !== authorId,
-    );
+  async removeAllByAuthorId(authorId: string): Promise<void> {
+    await this._prismaService.comment.deleteMany({
+      where: { authorId },
+    });
+  }
 
-    return;
+  private _toCommentEntity(comment: PrismaComment): Comment {
+    return {
+      id: comment.id,
+      content: comment.content,
+      articleId: comment.articleId,
+      authorId: comment.authorId,
+      createdAt: Number(comment.createdAt),
+    };
   }
 }

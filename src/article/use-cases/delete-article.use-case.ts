@@ -9,10 +9,8 @@ export class DeleteArticleUseCase {
     private readonly commentService: CommentService,
   ) {}
 
-  execute(articleId: string) {
-    this.articleService.remove(articleId);
-    this.commentService.removeAllByArticleId(articleId);
-
-    return;
+  async execute(articleId: string): Promise<void> {
+    await this.commentService.removeAllByArticleId(articleId);
+    await this.articleService.remove(articleId);
   }
 }

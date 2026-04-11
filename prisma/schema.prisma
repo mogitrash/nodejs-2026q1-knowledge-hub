@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  login           String    @unique
+  password        String
+  role            UserRole
+  createdAt       BigInt
+  updatedAt       BigInt
+  authoredArticles Article[] @relation("ArticleAuthor")
+  comments        Comment[] @relation("CommentAuthor")
+}
+
+model Article {
+  id         String        @id @default(uuid())
+  title      String
+  content    String
+  status     ArticleStatus
+  authorId   String?
+  author     User?         @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  categoryId String?
+  category   Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags       String[]
+  createdAt  BigInt
+  updatedAt  BigInt
+  comments   Comment[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([authorId])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  articles    Article[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Restrict)
+  authorId  String?
+  author    User?    @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt BigInt
+
+  @@index([articleId])
+  @@index([authorId])
+}
+
+enum ArticleStatus {
+  DRAFT     @map("draft")
+  PUBLISHED @map("published")
+  ARCHIVED  @map("archived")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}

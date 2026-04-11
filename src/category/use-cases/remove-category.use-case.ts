@@ -9,10 +9,8 @@ export class RemoveCategoryUseCase {
     private readonly articleService: ArticleService,
   ) {}
 
-  execute(categoryId: string) {
-    this.categoryService.remove(categoryId);
-    this.articleService.removeCategory(categoryId);
-
-    return;
+  async execute(categoryId: string): Promise<void> {
+    await this.articleService.removeCategory(categoryId);
+    await this.categoryService.remove(categoryId);
   }
 }

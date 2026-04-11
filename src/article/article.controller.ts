@@ -49,8 +49,8 @@ export class ArticleController {
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.deleteArticleUseCase.execute(params.id);
+  async remove(@Param() params: IdParamsDto, @Res() res: Response) {
+    await this.deleteArticleUseCase.execute(params.id);
 
     res.status(HttpStatus.NO_CONTENT).send();
   }

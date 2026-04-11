@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ArticleApiModule } from './article/article-api.module';
-import { CategoryModule } from './category/category.module';
+import { CategoryApiModule } from './category/category-api.module';
 import { CommentModule } from './comment/comment.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { UserApiModule } from './user/user-api.module';
 
 @Module({
-  imports: [UserApiModule, ArticleApiModule, CategoryModule, CommentModule],
+  imports: [
+    PrismaModule,
+    UserApiModule,
+    ArticleApiModule,
+    CategoryApiModule,
+    CommentModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

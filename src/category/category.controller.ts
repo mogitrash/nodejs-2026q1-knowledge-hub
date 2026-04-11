@@ -47,8 +47,8 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParamsDto, @Res() res: Response) {
-    this.removeCategoryUseCase.execute(params.id);
+  async remove(@Param() params: IdParamsDto, @Res() res: Response) {
+    await this.removeCategoryUseCase.execute(params.id);
 
     res.status(HttpStatus.NO_CONTENT).send();
   }

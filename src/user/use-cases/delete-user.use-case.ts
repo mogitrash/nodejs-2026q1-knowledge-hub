@@ -11,11 +11,9 @@ export class DeleteUserUseCase {
     private readonly commentService: CommentService,
   ) {}
 
-  execute(userId: string) {
-    this.userService.remove(userId);
-    this.articleService.removeAuthor(userId);
-    this.commentService.removeAllByAuthorId(userId);
-
-    return;
+  async execute(userId: string): Promise<void> {
+    await this.articleService.removeAuthor(userId);
+    await this.commentService.removeAllByAuthorId(userId);
+    await this.userService.remove(userId);
   }
 }
