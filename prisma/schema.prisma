@@ -26,7 +26,7 @@ model Article {
   author     User?         @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   categoryId String?
   category   Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  tags       String[]
+  tags       Tag[]
   createdAt  BigInt
   updatedAt  BigInt
   comments   Comment[]
@@ -54,6 +54,14 @@ model Comment {
 
   @@index([articleId])
   @@index([authorId])
+}
+
+model Tag {
+  id String @id @default(uuid())
+  name String @unique
+  articles Article[]
+
+  @@index([name])
 }
 
 enum ArticleStatus {
