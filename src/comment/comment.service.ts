@@ -65,18 +65,6 @@ export class CommentService {
     });
   }
 
-  async removeAllByArticleId(articleId: string): Promise<void> {
-    await this._prismaService.comment.deleteMany({
-      where: { articleId },
-    });
-  }
-
-  async removeAllByAuthorId(authorId: string): Promise<void> {
-    await this._prismaService.comment.deleteMany({
-      where: { authorId },
-    });
-  }
-
   private _toCommentEntity(comment: PrismaComment): Comment {
     return {
       id: comment.id,

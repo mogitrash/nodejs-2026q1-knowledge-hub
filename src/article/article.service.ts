@@ -124,29 +124,6 @@ export class ArticleService {
     });
   }
 
-  async removeAuthor(authorId: string): Promise<void> {
-    await this._prismaService.article.updateMany({
-      where: {
-        authorId,
-      },
-      data: {
-        authorId: null,
-        updatedAt: BigInt(Date.now()),
-      },
-    });
-  }
-
-  async removeCategory(categoryId: string): Promise<void> {
-    await this._prismaService.article.updateMany({
-      where: {
-        categoryId,
-      },
-      data: {
-        categoryId: null,
-      },
-    });
-  }
-
   private _toArticleEntity(article: ArticleWithTags): Article {
     return {
       id: article.id,
