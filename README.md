@@ -18,14 +18,28 @@ git clone {repository URL}
 npm install
 ```
 
-## Running application
+## Running application with Docker Compose
+
+1. Generate Prisma Client:
 
 ```
-npm start
+npx prisma generate
 ```
 
-After starting the app on port (4000 as default) you can open
-in your browser OpenAPI documentation by typing http://localhost:4000/doc/.
+2. Start the app and database with Docker Compose:
+
+```
+docker compose up --build -d
+```
+
+3. Seed the database:
+
+```
+npx prisma db seed
+```
+
+After starting the app on port (4000 as default), you can open
+OpenAPI documentation in your browser by typing http://localhost:4000/doc/.
 For more information about OpenAPI/Swagger please visit https://swagger.io/.
 
 ## Testing
