@@ -1,8 +1,8 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 
 import { UserService } from 'src/user/user.service';
@@ -18,7 +18,7 @@ const jwtSecret = process.env['JWT_SECRET_KEY'];
 const jwtExpires = process.env['TOKEN_EXPIRE_TIME'];
 
 type JwtPayload = {
-  id: string;
+  userId: string;
   login: string;
   role: string;
 };
@@ -53,18 +53,18 @@ export class AuthService {
     let user: User | null = null;
     try {
       user = await this.userService.findByLogin(login);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid credentials');
+    } catch {
+      throw new ForbiddenException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new ForbiddenException('Invalid credentials');
     }
 
     return this._issueTokens({
-      id: user.id,
+      userId: user.id,
       login: user.login,
       role: user.role,
     });
@@ -73,23 +73,19 @@ export class AuthService {
   async refresh(refreshDto: RefreshDto) {
     const { refreshToken } = refreshDto;
 
-    if (!jwtRefreshSecret) {
-      throw new UnauthorizedException('Refresh token secret is not configured');
-    }
-
     let payload: JwtPayload;
     try {
       payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
         secret: jwtRefreshSecret,
       });
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new ForbiddenException('Invalid refresh token');
     }
 
     const user = await this.userService.findByLogin(payload.login);
 
     return this._issueTokens({
-      id: user.id,
+      userId: user.id,
       login: user.login,
       role: user.role,
     });

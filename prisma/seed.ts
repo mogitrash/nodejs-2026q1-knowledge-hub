@@ -10,10 +10,6 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is not defined');
 }
 
-if (!Number.isInteger(cryptSalt) || cryptSalt <= 0) {
-  throw new Error('CRYPT_SALT must be a positive integer');
-}
-
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl }),
 });

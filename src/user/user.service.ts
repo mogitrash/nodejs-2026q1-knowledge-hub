@@ -14,7 +14,7 @@ import type { User as PrismaUser } from 'generated/prisma/client';
 import { UpdatePasswordDto } from './dto';
 import { User, UserRole } from './entities';
 
-const cryptSalt = process.env['CRYPT_SALT'];
+const cryptSalt = Number(process.env['CRYPT_SALT']);
 
 @Injectable()
 export class UserService {
