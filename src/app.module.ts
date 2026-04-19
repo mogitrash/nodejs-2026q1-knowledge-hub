@@ -5,6 +5,7 @@ import { CategoryApiModule } from './category/category-api.module';
 import { CommentModule } from './comment/comment.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserApiModule } from './user/user-api.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserApiModule } from './user/user-api.module';
     ArticleApiModule,
     CategoryApiModule,
     CommentModule,
+    AuthModule,
   ],
   controllers: [AppController],
 })

@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, $Enums } from '../generated/prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const databaseUrl = process.env['DATABASE_URL'];
+const cryptSalt = Number(process.env['CRYPT_SALT']);
 
 if (!databaseUrl) {
   throw new Error('DATABASE_URL is not defined');
@@ -14,6 +16,10 @@ const prisma = new PrismaClient({
 
 async function main() {
   const now = BigInt(Date.now());
+  const [adminPassword, editorPassword] = await Promise.all([
+    bcrypt.hash('admin123', cryptSalt),
+    bcrypt.hash('editor123', cryptSalt),
+  ]);
 
   await prisma.comment.deleteMany();
   await prisma.article.deleteMany();
@@ -24,7 +30,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       login: 'admin',
-      password: 'admin123',
+      password: adminPassword,
       role: $Enums.UserRole.ADMIN,
       createdAt: now,
       updatedAt: now,
@@ -34,7 +40,7 @@ async function main() {
   const editor = await prisma.user.create({
     data: {
       login: 'editor',
-      password: 'editor123',
+      password: editorPassword,
       role: $Enums.UserRole.EDITOR,
       createdAt: now,
       updatedAt: now,
