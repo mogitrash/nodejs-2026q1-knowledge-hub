@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NextFunction, Request, Response } from 'express';
 import { writeHttpLog } from './http-logger';
+import { HttpExceptionFilter } from './http-exception-filter';
 
 const SENSITIVE_FIELD_PATTERN = /(password|token)/i;
 
@@ -55,6 +56,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Knowledge Hub')
