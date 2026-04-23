@@ -1,13 +1,13 @@
 import {
   Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Comment } from './entities/comment.entity';
 import { ArticleService } from 'src/article/article.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { Comment as PrismaComment } from 'generated/prisma/client';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
+import { ValidationError } from 'src/shared/errors/validation.error';
 
 @Injectable()
 export class CommentService {
@@ -20,7 +20,7 @@ export class CommentService {
     try {
       await this._articleService.findOne(createCommentDto.articleId);
     } catch (error) {
-      throw new UnprocessableEntityException('Article not found');
+      throw new ValidationError('Article not found');
     }
 
     const comment = await this._prismaService.comment.create({
@@ -57,7 +57,7 @@ export class CommentService {
     });
 
     if (!comment) {
-      throw new NotFoundException('Comment not found');
+      throw new NotFoundError('Comment not found');
     }
 
     await this._prismaService.comment.delete({

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { Article, ArticleStatus } from './entities/article.entity';
@@ -6,6 +6,7 @@ import { QueryParamsDto } from './dto/query-params.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { Prisma } from 'generated/prisma/client';
 import { $Enums } from 'generated/prisma/client';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
 
 type ArticleWithTags = Prisma.ArticleGetPayload<{ include: { tags: true } }>;
 
@@ -63,7 +64,7 @@ export class ArticleService {
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundError('Article not found');
     }
 
     return this._toArticleEntity(article);
@@ -79,7 +80,7 @@ export class ArticleService {
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundError('Article not found');
     }
 
     const { tags: nextTagNames, ...scalarFields } = updateArticleDto;
@@ -116,7 +117,7 @@ export class ArticleService {
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundError('Article not found');
     }
 
     await this._prismaService.article.delete({

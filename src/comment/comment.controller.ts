@@ -8,13 +8,13 @@ import {
   Query,
   Res,
   HttpStatus,
-  NotFoundException,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { IdParamsDto } from 'src/shared/dto';
 import { FindAllQueryParamsDto } from './dto/find-all-query-params.dto';
 import { Response } from 'express';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
 
 @Controller('comment')
 export class CommentController {
@@ -35,7 +35,7 @@ export class CommentController {
     const comment = await this.commentService.findOne(params.id);
 
     if (!comment) {
-      throw new NotFoundException('Comment not found');
+      throw new NotFoundError('Comment not found');
     }
 
     return comment;

@@ -1,13 +1,9 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { UnauthorizedError } from 'src/shared/errors/unauthorized.error';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -40,23 +36,22 @@ export class AccessTokenGuard implements CanActivate {
     const authorization = request.headers['authorization'];
 
     if (!authorization || typeof authorization !== 'string') {
-      throw new UnauthorizedException('Authorization header is missing');
+      throw new UnauthorizedError('Authorization header is missing');
     }
 
     const [scheme, token] = authorization.split(' ');
     if (scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header format');
+      throw new UnauthorizedError('Invalid authorization header format');
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<AuthenticatedRequest['user']>(
-        token,
-        { secret: this.jwtSecret },
-      );
+      const payload = await this.jwtService.verifyAsync<
+        AuthenticatedRequest['user']
+      >(token, { secret: this.jwtSecret });
       request.user = payload;
       return true;
     } catch {
-      throw new UnauthorizedException('Invalid or expired access token');
+      throw new UnauthorizedError('Invalid or expired access token');
     }
   }
 }

@@ -4,8 +4,8 @@ import { AppModule } from './app.module';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NextFunction, Request, Response } from 'express';
-import { writeHttpLog } from './http-logger';
 import { HttpExceptionFilter } from './http-exception-filter';
+import { HttpLogger } from './http-logger';
 
 const SENSITIVE_FIELD_PATTERN = /(password|token)/i;
 
@@ -32,22 +32,24 @@ function sanitizeForLog(value: unknown): unknown {
 }
 
 async function bootstrap() {
+  const httpLogger = new HttpLogger();
+
   app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
     const startedAt = Date.now();
     const sanitizedQuery = sanitizeForLog(req.query);
     const sanitizedBody = sanitizeForLog(req.body);
 
-    writeHttpLog(
+    await httpLogger.writeHttpLog(
       `Incoming ${req.method} ${req.originalUrl} | query=${JSON.stringify(sanitizedQuery)} | body=${JSON.stringify(sanitizedBody)}`,
     );
 
-    res.on('finish', () => {
+    res.on('finish', async () => {
       const durationMs = Date.now() - startedAt;
-      writeHttpLog(
+      await httpLogger.writeHttpLog(
         `Outgoing ${req.method} ${req.originalUrl} | status=${res.statusCode} | durationMs=${durationMs}`,
       );
     });

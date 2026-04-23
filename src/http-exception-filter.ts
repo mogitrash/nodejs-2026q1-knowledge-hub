@@ -2,6 +2,7 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
+  HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
@@ -26,13 +27,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof UnauthorizedError ||
       exception instanceof ForbiddenError ||
       exception instanceof NotFoundError;
+    const isHttpException = exception instanceof HttpException;
 
     const statusCode = isCustomError
       ? exception.statusCode
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+      : isHttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
-      exception instanceof Error ? exception.message : 'Internal server error';
+    const message = isCustomError
+      ? exception.message
+      : isHttpException
+        ? exception.message
+        : 'An unexpected error occurred';
+    const errorLabel = isCustomError
+      ? exception.name
+      : isHttpException
+        ? HttpStatus[statusCode]
+        : 'Internal Server Error';
 
     this.logger.error(
       `Exception ${message} | status=${statusCode} | path=${request.url}`,
@@ -41,6 +53,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(statusCode).json({
       statusCode,
+      error: errorLabel,
       message,
     });
   }

@@ -1,8 +1,5 @@
 import {
-  BadRequestException,
-  ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 import { UserService } from 'src/user/user.service';
@@ -11,6 +8,9 @@ import { LoginDto, RefreshDto, SignupDto } from './dto';
 import type { SignOptions } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities';
+import { ForbiddenError } from 'src/shared/errors/forbidden.error';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
+import { ValidationError } from 'src/shared/errors/validation.error';
 
 const jwtRefreshSecret = process.env['JWT_SECRET_REFRESH_KEY'];
 const jwtRefreshExpires = process.env['TOKEN_REFRESH_EXPIRE_TIME'];
@@ -35,9 +35,9 @@ export class AuthService {
 
     try {
       await this.userService.findByLogin(login);
-      throw new BadRequestException('User already exists');
+      throw new ValidationError('User already exists');
     } catch (error) {
-      if (!(error instanceof NotFoundException)) {
+      if (!(error instanceof NotFoundError)) {
         throw error;
       }
     }
@@ -54,13 +54,13 @@ export class AuthService {
     try {
       user = await this.userService.findByLogin(login);
     } catch {
-      throw new ForbiddenException('Invalid credentials');
+      throw new ForbiddenError('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new ForbiddenException('Invalid credentials');
+      throw new ForbiddenError('Invalid credentials');
     }
 
     return this._issueTokens({
@@ -79,7 +79,7 @@ export class AuthService {
         secret: jwtRefreshSecret,
       });
     } catch {
-      throw new ForbiddenException('Invalid refresh token');
+      throw new ForbiddenError('Invalid refresh token');
     }
 
     const user = await this.userService.findByLogin(payload.login);
