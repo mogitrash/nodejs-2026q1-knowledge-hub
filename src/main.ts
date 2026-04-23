@@ -1,13 +1,15 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NextFunction, Request, Response } from 'express';
 import { writeHttpLog } from './http-logger';
 import { HttpExceptionFilter } from './http-exception-filter';
 
 const SENSITIVE_FIELD_PATTERN = /(password|token)/i;
+
+let app: INestApplication | null = null;
 
 function sanitizeForLog(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -30,7 +32,7 @@ function sanitizeForLog(value: unknown): unknown {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
@@ -71,4 +73,29 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 4000);
 }
+
 bootstrap();
+
+async function shutDown(error: unknown): Promise<void> {
+  const httpLogger = new Logger('Shutdown');
+
+  if (error instanceof Error) {
+    httpLogger.error(error.message, error.stack);
+  } else {
+    httpLogger.error('Unknown error', error);
+  }
+
+  if (app) {
+    await app.close();
+  }
+
+  process.exit(1);
+}
+
+process.on('uncaughtException', async (error) => {
+  await shutDown(error);
+});
+
+process.on('unhandledRejection', async (error) => {
+  await shutDown(error);
+});
