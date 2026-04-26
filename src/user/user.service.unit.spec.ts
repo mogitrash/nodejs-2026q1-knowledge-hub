@@ -92,7 +92,32 @@ describe('UserService', () => {
   it('throws NotFoundError when user is missing', async () => {
     prismaServiceMock.user.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.findOne('missing')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.findOne('missing')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it('finds user', async () => {
+    prismaServiceMock.user.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      login: 'john',
+      password: 'hash',
+      role: $Enums.UserRole.VIEWER,
+      createdAt: BigInt(1),
+      updatedAt: BigInt(2),
+    });
+
+    const result = await service.findOne('u1');
+
+    expect(result.id).toBe('u1');
+  });
+
+  it('throws NotFoundError when updating missing user', async () => {
+    prismaServiceMock.user.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.update('missing', { oldPassword: 'old', newPassword: 'new' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('updates password', async () => {
@@ -147,6 +172,14 @@ describe('UserService', () => {
     });
   });
 
+  it('throws NotFoundError when removing missing user', async () => {
+    prismaServiceMock.user.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.remove('missing')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
   it('finds user by login', async () => {
     prismaServiceMock.user.findUnique.mockResolvedValueOnce({
       id: 'u1',
@@ -163,5 +196,13 @@ describe('UserService', () => {
       where: { login: 'john' },
     });
     expect(result.role).toBe(UserRole.EDITOR);
+  });
+
+  it('throws NotFoundError when login is missing', async () => {
+    prismaServiceMock.user.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.findByLogin('missing')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });

@@ -73,6 +73,18 @@ describe('CategoryService', () => {
     );
   });
 
+  it('finds category', async () => {
+    prismaServiceMock.category.findUnique.mockResolvedValueOnce({
+      id: 'c1',
+      name: 'NestJS',
+      description: 'Framework',
+    });
+
+    const result = await service.findOne('c1');
+
+    expect(result.id).toBe('c1');
+  });
+
   it('updates category', async () => {
     prismaServiceMock.category.findUnique.mockResolvedValueOnce({ id: 'c1' });
     prismaServiceMock.category.update.mockResolvedValueOnce({
@@ -91,6 +103,25 @@ describe('CategoryService', () => {
       data: { name: 'Updated', description: 'Updated desc' },
     });
     expect(result.name).toBe('Updated');
+  });
+
+  it('throws NotFoundError when updating missing category', async () => {
+    prismaServiceMock.category.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.update('missing', { name: 'Updated', description: 'Updated' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('removes category', async () => {
+    prismaServiceMock.category.findUnique.mockResolvedValueOnce({ id: 'c1' });
+    prismaServiceMock.category.delete.mockResolvedValueOnce(undefined);
+
+    await service.remove('c1');
+
+    expect(prismaServiceMock.category.delete).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+    });
   });
 
   it('throws NotFoundError when removing missing category', async () => {

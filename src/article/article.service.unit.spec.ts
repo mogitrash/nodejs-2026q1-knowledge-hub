@@ -86,6 +86,38 @@ describe('ArticleService', () => {
     });
   });
 
+  it('findAll works without filters', async () => {
+    prismaServiceMock.article.findMany.mockResolvedValueOnce([]);
+
+    await service.findAll({});
+
+    expect(prismaServiceMock.article.findMany).toHaveBeenCalledWith({
+      where: {
+        status: undefined,
+        categoryId: undefined,
+      },
+      include: { tags: true },
+    });
+  });
+
+  it('finds published article', async () => {
+    prismaServiceMock.article.findUnique.mockResolvedValueOnce({
+      id: 'a1',
+      title: 't1',
+      content: 'c1',
+      status: $Enums.ArticleStatus.PUBLISHED,
+      authorId: null,
+      categoryId: null,
+      tags: [],
+      createdAt: BigInt(10),
+      updatedAt: BigInt(11),
+    });
+
+    const result = await service.findOne('a1');
+
+    expect(result.status).toBe(ArticleStatus.PUBLISHED);
+  });
+
   it('throws NotFoundError in findOne when missing', async () => {
     prismaServiceMock.article.findUnique.mockResolvedValueOnce(null);
 
@@ -100,6 +132,50 @@ describe('ArticleService', () => {
     await expect(
       service.update('missing', { title: 'new', content: 'new-content' }),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('updates article with tags', async () => {
+    prismaServiceMock.article.findUnique.mockResolvedValueOnce({
+      id: 'a1',
+      tags: [{ id: 'old-tag', name: 'old' }],
+    });
+    prismaServiceMock.article.update.mockResolvedValueOnce({
+      id: 'a1',
+      title: 'new',
+      content: 'new-content',
+      status: $Enums.ArticleStatus.ARCHIVED,
+      authorId: null,
+      categoryId: null,
+      tags: [{ id: 'new-tag', name: 'new-tag' }],
+      createdAt: BigInt(10),
+      updatedAt: BigInt(12),
+    });
+
+    const result = await service.update('a1', {
+      title: 'new',
+      content: 'new-content',
+      status: ArticleStatus.ARCHIVED,
+      tags: ['new-tag'],
+    });
+
+    expect(prismaServiceMock.article.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'a1' },
+        include: { tags: true },
+      }),
+    );
+    expect(result.status).toBe(ArticleStatus.ARCHIVED);
+  });
+
+  it('removes article', async () => {
+    prismaServiceMock.article.findUnique.mockResolvedValueOnce({ id: 'a1' });
+    prismaServiceMock.article.delete.mockResolvedValueOnce(undefined);
+
+    await service.remove('a1');
+
+    expect(prismaServiceMock.article.delete).toHaveBeenCalledWith({
+      where: { id: 'a1' },
+    });
   });
 
   it('throws NotFoundError in remove when missing', async () => {
