@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { Category as PrismaCategory } from 'generated/prisma/client';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
 
 @Injectable()
 export class CategoryService {
@@ -31,7 +32,7 @@ export class CategoryService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundError('Category not found');
     }
 
     return this._toCategoryEntity(category);
@@ -46,7 +47,7 @@ export class CategoryService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundError('Category not found');
     }
 
     const updatedCategory = await this._prismaService.category.update({
@@ -63,7 +64,7 @@ export class CategoryService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundError('Category not found');
     }
 
     await this._prismaService.category.delete({

@@ -1,7 +1,5 @@
 import {
-  ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 import * as bcrypt from 'bcrypt';
@@ -13,6 +11,8 @@ import { $Enums } from 'generated/prisma/client';
 import type { User as PrismaUser } from 'generated/prisma/client';
 import { UpdatePasswordDto } from './dto';
 import { User, UserRole } from './entities';
+import { ForbiddenError } from 'src/shared/errors/forbidden.error';
+import { NotFoundError } from 'src/shared/errors/not-found.error';
 
 const cryptSalt = Number(process.env['CRYPT_SALT']);
 
@@ -48,7 +48,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundError('User not found');
     }
 
     return this._toUserEntity(user);
@@ -60,7 +60,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundError('User not found');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -69,7 +69,7 @@ export class UserService {
     );
 
     if (!isPasswordValid) {
-      throw new ForbiddenException('Invalid old password');
+      throw new ForbiddenError('Invalid old password');
     }
 
     const updatedUser = await this._prismaService.user.update({
@@ -89,7 +89,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundError('User not found');
     }
 
     await this._prismaService.user.delete({
@@ -103,7 +103,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundError('User not found');
     }
 
     return this._toUserEntity(user);
