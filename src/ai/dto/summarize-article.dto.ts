@@ -11,3 +11,10 @@ export class SummarizeArticleDto {
   @IsEnum(MaxLength)
   maxLength?: MaxLength;
 }
+
+export interface SummarizeArticleResponseDto {
+  articleId: string;
+  summary: string;
+  originalLength: number;
+  summaryLength: number;
+}
