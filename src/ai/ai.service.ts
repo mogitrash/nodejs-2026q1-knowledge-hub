@@ -8,9 +8,24 @@ import {
 } from './dto/summarize-article.dto';
 import { NotFoundError } from 'src/shared/errors/not-found.error';
 import {
+  AnalyzeArticleDto,
+  AnalyzeArticleResponseDto,
+  AnalyzeTask,
+} from './dto/analyze-article.dto';
+import {
   TranslateArticleRequestDto,
   TranslateArticleResponseDto,
 } from './dto/translate-article.dto';
+
+const ANALYZE_RESPONSE_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    analysis: { type: 'string' },
+    suggestions: { type: 'array', items: { type: 'string' } },
+    severity: { type: 'string', enum: ['info', 'warning', 'error'] },
+  },
+  required: ['analysis', 'suggestions', 'severity'],
+} as const;
 
 @Injectable()
 export class AiService {
@@ -112,6 +127,40 @@ export class AiService {
       articleId,
       translatedText,
       detectedLanguage: detectedLanguage,
+    };
+  }
+
+  async analyzeArticle(
+    articleId: string,
+    analyzeArticleDto: AnalyzeArticleDto,
+  ): Promise<AnalyzeArticleResponseDto> {
+    const task = analyzeArticleDto.task ?? AnalyzeTask.REVIEW;
+
+    const article = await this._prismaService.article.findUnique({
+      where: { id: articleId },
+    });
+
+    if (!article) {
+      throw new NotFoundError('Article not found');
+    }
+
+    const response = await this._ai.models.generateContent({
+      model: process.env.GEMINI_MODEL,
+      contents: `Task: ${task}\nArticle content: ${article.content}`,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: ANALYZE_RESPONSE_JSON_SCHEMA,
+        systemInstruction: `You analyze articles. The requested task is one of: review (editorial feedback), bugs (errors and inconsistencies), optimize (clarity and structure), explain (plain-language explanation of the content). Article text follows "Article content:". Respond with JSON only: analysis (string), suggestions (string array, can be empty), severity (info | warning | error) for the most serious issue found.`,
+      },
+    });
+
+    const parsed = JSON.parse(response.text) as AnalyzeArticleResponseDto;
+
+    return {
+      articleId,
+      analysis: parsed.analysis,
+      suggestions: parsed.suggestions,
+      severity: parsed.severity,
     };
   }
 }
