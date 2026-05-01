@@ -1,4 +1,5 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { AiRateLimitGuard } from './ai-rate-limit.guard';
 import { AiService } from './ai.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { AnalyzeArticleDto } from './dto/analyze-article.dto';
@@ -6,6 +7,7 @@ import { SummarizeArticleDto } from './dto/summarize-article.dto';
 import { TranslateArticleRequestDto } from './dto/translate-article.dto';
 
 @Controller('ai')
+@UseGuards(AiRateLimitGuard)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
@@ -34,5 +36,11 @@ export class AiController {
     @Body() dto: AnalyzeArticleDto,
   ) {
     return this.aiService.analyzeArticle(articleId, dto);
+  }
+
+  @Public()
+  @Post('generate')
+  async generate(@Body('prompt') prompt: string) {
+    return this.aiService.generate(prompt);
   }
 }

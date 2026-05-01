@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { ForbiddenError } from './shared/errors/forbidden.error';
 import { NotFoundError } from './shared/errors/not-found.error';
+import { TooManyRequestsError } from './shared/errors/too-many-requests.error';
 import { UnauthorizedError } from './shared/errors/unauthorized.error';
 import { ValidationError } from './shared/errors/validation.error';
 
@@ -26,7 +27,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof ValidationError ||
       exception instanceof UnauthorizedError ||
       exception instanceof ForbiddenError ||
-      exception instanceof NotFoundError;
+      exception instanceof NotFoundError ||
+      exception instanceof TooManyRequestsError;
     const isHttpException = exception instanceof HttpException;
 
     const statusCode = isCustomError
@@ -50,6 +52,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `Exception ${message} | status=${statusCode} | path=${request.url}`,
       exception instanceof Error ? exception.stack : undefined,
     );
+
+    if (
+      exception instanceof TooManyRequestsError &&
+      exception.retryAfterSeconds != null
+    ) {
+      response.setHeader('Retry-After', String(exception.retryAfterSeconds));
+    }
 
     response.status(statusCode).json({
       statusCode,
