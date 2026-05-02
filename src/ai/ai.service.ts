@@ -1,5 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  GatewayTimeoutException,
+  Injectable,
+} from '@nestjs/common';
+import { AiUsageService, AiEndpointKey } from './ai-usage.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   MaxLength,
@@ -26,6 +31,9 @@ import {
   TRANSLATE_SYSTEM_INSTRUCTION,
   buildTranslateContents,
 } from './prompts';
+import { TooManyRequestsError } from 'src/shared/errors/too-many-requests.error';
+import { UnauthorizedError } from 'src/shared/errors/unauthorized.error';
+import { ForbiddenError } from 'src/shared/errors/forbidden.error';
 
 function aiCacheTtlMs(): number {
   const raw = Number(process.env.AI_CACHE_TTL_SEC);
@@ -33,13 +41,25 @@ function aiCacheTtlMs(): number {
   return sec * 1000;
 }
 
+type GeminiResponse = {
+  text?: string | null;
+  usageMetadata?: { totalTokenCount?: number };
+};
+
 @Injectable()
 export class AiService {
   private readonly _ai = new GoogleGenAI({});
   private readonly _cacheTtlMs = aiCacheTtlMs();
   private readonly _cache = new Map<string, { exp: number; v: unknown }>();
 
-  constructor(private readonly _prismaService: PrismaService) {}
+  constructor(
+    private readonly _prismaService: PrismaService,
+    private readonly _usage: AiUsageService,
+  ) {}
+
+  getUsageSnapshot() {
+    return this._usage.snapshot();
+  }
 
   private _cacheGet<T>(key: string): T | undefined {
     const row = this._cache.get(key);
@@ -55,6 +75,62 @@ export class AiService {
 
   private _cacheSet(key: string, value: unknown): void {
     this._cache.set(key, { exp: Date.now() + this._cacheTtlMs, v: value });
+  }
+
+  private _mapGeminiError(err: unknown): Error {
+    const nested =
+      err instanceof Error &&
+      typeof (err as Error & { cause?: unknown }).cause !== 'undefined'
+        ? String((err as Error & { cause?: unknown }).cause)
+        : '';
+    const raw = err instanceof Error ? `${err.message} ${nested}` : String(err);
+    const low = raw.toLowerCase();
+
+    if (
+      /\b401\b|\b401\s|unauthenticated|invalid api key|\binvalid.?key\b|\bapi[_-]?key\b.*invalid/i.test(
+        raw,
+      )
+    ) {
+      return new UnauthorizedError('Gemini API authentication failed');
+    }
+    if (
+      /\b403\b|\b403\s|forbidden|caller does not have permission/i.test(low)
+    ) {
+      return new ForbiddenError('Gemini API access denied');
+    }
+    if (
+      /\b429\b|resource_exhausted|rate.?limit|quota exceeded|too many requests/i.test(
+        low,
+      )
+    ) {
+      return new TooManyRequestsError('Gemini API rate limit exceeded', 60);
+    }
+    if (
+      /\bdeadline.?exceeded\b|timed out\b|timeout|etimedout|econnaborted|gateway timeout\b/i.test(
+        low,
+      )
+    ) {
+      return new GatewayTimeoutException(
+        'Gemini API request timed out',
+      ) as unknown as Error;
+    }
+
+    return new BadGatewayException('Gemini API error') as unknown as Error;
+  }
+
+  private async _generateContentTracked(
+    endpoint: AiEndpointKey,
+    req: Parameters<GoogleGenAI['models']['generateContent']>[0],
+  ): Promise<GeminiResponse> {
+    try {
+      const response = await this._ai.models.generateContent(req);
+      const r = response as GeminiResponse;
+      this._usage.bumpRequest(endpoint);
+      this._usage.bumpTokens(endpoint, r.usageMetadata?.totalTokenCount);
+      return r;
+    } catch (e) {
+      throw this._mapGeminiError(e);
+    }
   }
 
   async summarizeArticle(
@@ -96,7 +172,7 @@ export class AiService {
         break;
     }
 
-    const response = await this._ai.models.generateContent({
+    const response = await this._generateContentTracked('summarize', {
       model: process.env.GEMINI_MODEL,
       contents: buildSummarizeContents(article.content),
       config: {
@@ -107,9 +183,9 @@ export class AiService {
 
     const out: SummarizeArticleResponseDto = {
       articleId,
-      summary: response.text,
+      summary: response.text ?? '',
       originalLength: article.content.length,
-      summaryLength: response.text.length,
+      summaryLength: (response.text ?? '').length,
     };
     this._cacheSet(cacheKey, out);
     return out;
@@ -141,7 +217,7 @@ export class AiService {
       return cached;
     }
 
-    const response = await this._ai.models.generateContent({
+    const response = await this._generateContentTracked('translate', {
       model: process.env.GEMINI_MODEL,
       contents: buildTranslateContents(
         targetLanguage,
@@ -156,7 +232,7 @@ export class AiService {
     });
 
     const { translatedText, detectedLanguage = sourceLanguage } = JSON.parse(
-      response.text,
+      response.text ?? '{}',
     ) as TranslateArticleResponseDto;
 
     const out: TranslateArticleResponseDto = {
@@ -182,7 +258,7 @@ export class AiService {
       throw new NotFoundError('Article not found');
     }
 
-    const response = await this._ai.models.generateContent({
+    const response = await this._generateContentTracked('analyze', {
       model: process.env.GEMINI_MODEL,
       contents: buildAnalyzeContents(task, article.content),
       config: {
@@ -192,7 +268,7 @@ export class AiService {
       },
     });
 
-    const parsed = JSON.parse(response.text) as AnalyzeArticleResponseDto;
+    const parsed = JSON.parse(response.text ?? '{}') as AnalyzeArticleResponseDto;
 
     return {
       articleId,
@@ -203,11 +279,11 @@ export class AiService {
   }
 
   async generate(prompt: string): Promise<string> {
-    const response = await this._ai.models.generateContent({
+    const response = await this._generateContentTracked('generate', {
       model: process.env.GEMINI_MODEL,
       contents: prompt,
     });
 
-    return response.text;
+    return response.text ?? '';
   }
 }

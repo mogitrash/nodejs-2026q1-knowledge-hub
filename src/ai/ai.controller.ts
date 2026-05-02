@@ -1,46 +1,67 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AiRateLimitGuard } from './ai-rate-limit.guard';
 import { AiService } from './ai.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { AnalyzeArticleDto } from './dto/analyze-article.dto';
 import { SummarizeArticleDto } from './dto/summarize-article.dto';
 import { TranslateArticleRequestDto } from './dto/translate-article.dto';
+import { ArticleIdParamDto } from './dto/article-id-param.dto';
+import { GenerateDto } from './dto/generate.dto';
 
 @Controller('ai')
-@UseGuards(AiRateLimitGuard)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Public()
+  @Get('usage')
+  getUsage() {
+    return this.aiService.getUsageSnapshot();
+  }
+
+  @Public()
+  @UseGuards(AiRateLimitGuard)
   @Post('articles/:articleId/summarize')
   async summarizeArticle(
-    @Param('articleId') articleId: string,
+    @Param() params: ArticleIdParamDto,
     @Body() summarizeArticleDto: SummarizeArticleDto,
   ) {
-    return this.aiService.summarizeArticle(articleId, summarizeArticleDto);
+    return this.aiService.summarizeArticle(
+      params.articleId,
+      summarizeArticleDto,
+    );
   }
 
   @Public()
+  @UseGuards(AiRateLimitGuard)
   @Post('articles/:articleId/translate')
   async translateArticle(
-    @Param('articleId') articleId: string,
+    @Param() params: ArticleIdParamDto,
     @Body() dto: TranslateArticleRequestDto,
   ) {
-    return this.aiService.translateArticle(articleId, dto);
+    return this.aiService.translateArticle(params.articleId, dto);
   }
 
   @Public()
+  @UseGuards(AiRateLimitGuard)
   @Post('articles/:articleId/analyze')
   async analyzeArticle(
-    @Param('articleId') articleId: string,
+    @Param() params: ArticleIdParamDto,
     @Body() dto: AnalyzeArticleDto,
   ) {
-    return this.aiService.analyzeArticle(articleId, dto);
+    return this.aiService.analyzeArticle(params.articleId, dto);
   }
 
   @Public()
+  @UseGuards(AiRateLimitGuard)
   @Post('generate')
-  async generate(@Body('prompt') prompt: string) {
-    return this.aiService.generate(prompt);
+  async generate(@Body() dto: GenerateDto) {
+    return this.aiService.generate(dto.prompt);
   }
 }
